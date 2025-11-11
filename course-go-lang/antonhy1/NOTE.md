@@ -1,0 +1,4 @@
+- Buffered and unbuffererd channels
+- Read and write protection 
+- My common use cases (addPeer, messages, and RPC)
+- When to use buffered and ubuffured channels
