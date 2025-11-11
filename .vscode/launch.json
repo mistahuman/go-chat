@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Go Program",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "course-go-lang/concurrency/main.go",
+    //   "program": "${fileDirname}",
+      "args": [],
+      "showLog": true
+    }
+  ]
+}
