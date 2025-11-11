@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  chatserver:
+    build: .
+    image: go-chatserver:latest
+    container_name: go-chatserver
+    ports:
+      - "8080:8080"
+    environment:
+      - CHATSERVER_ADDR=:8080
