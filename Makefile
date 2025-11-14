@@ -7,28 +7,28 @@ PKG := ./...
 build: $(BINARY)
 
 $(BINARY):
-@echo "Building $@"
-@mkdir -p $(dir $@)
-@$(GO) build -o $@ ./
+	@echo "Building $@"
+	@mkdir -p $(dir $@)
+	@$(GO) build -o $@ ./
 
 run: build
-@$(BINARY)
+	@$(BINARY)
 
 clean:
-@echo "Removing build artifacts"
-@rm -rf $(dir $(BINARY))
+	@echo "Removing build artifacts"
+	@rm -rf $(dir $(BINARY))
 
 fmt:
-@$(GO) fmt $(PKG)
+	@$(GO) fmt $(PKG)
 
 lint:
-@$(GO) vet $(PKG)
+	@$(GO) vet $(PKG)
 
 test:
-@$(GO) test $(PKG)
+	@$(GO) test $(PKG)
 
 tidy:
-@$(GO) mod tidy
+	@$(GO) mod tidy
 
 doc:
-@$(GO) doc ./...
+	@$(GO) doc ./...

@@ -36,7 +36,7 @@ func (s *Server) HandleConnection(ctx context.Context, conn net.Conn) {
 	lobby.Join(client)
 	client.setRoom(lobby)
 
-	client.Send("Welcome! Commands: /nick /join /rooms /list /msg /leave /who")
+	client.Send("Welcome! Commands: /nick /join /rooms /list /msg /leave /who /blackjack")
 	s.Broadcast(defaultRoom, fmt.Sprintf("* %s joined", client.Nick()))
 
 	client.Handle()
