@@ -6,6 +6,9 @@ import (
 	"net"
 	"sort"
 	"sync"
+
+	"tcp-server/blackjack"
+	"tcp-server/games"
 )
 
 const defaultRoom = "lobby"
@@ -14,12 +17,19 @@ type Server struct {
 	clients map[*Client]bool
 	rooms   map[string]*Room
 	mu      sync.RWMutex
+	games   *games.Manager
 }
 
 func NewServer() *Server {
+	gameManager := games.NewManager()
+	gameManager.Register("blackjack", func() games.Session {
+		return blackjack.NewSession()
+	})
+
 	s := &Server{
 		clients: make(map[*Client]bool),
 		rooms:   make(map[string]*Room),
+		games:   gameManager,
 	}
 	s.rooms[defaultRoom] = NewRoom(defaultRoom)
 	return s
@@ -96,4 +106,12 @@ func (s *Server) FindClientByNick(nick string) *Client {
 		}
 	}
 	return nil
+}
+
+func (s *Server) GameFactory(name string) (games.Factory, bool) {
+	return s.games.Factory(name)
+}
+
+func (s *Server) ListGames() []string {
+	return s.games.List()
 }
