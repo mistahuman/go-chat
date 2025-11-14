@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"tcp-server/blackjack"
 )
 
 const maxMessageSize = 1024 * 1024
@@ -24,6 +26,7 @@ type Client struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	closeOnce sync.Once
+	game      *blackjack.Game
 }
 
 func NewClient(ctx context.Context, conn net.Conn, server *Server) *Client {
@@ -73,6 +76,18 @@ func (c *Client) setRoom(room *Room) {
 	c.mu.Lock()
 	c.room = room
 	c.mu.Unlock()
+}
+
+func (c *Client) setGame(game *blackjack.Game) {
+	c.mu.Lock()
+	c.game = game
+	c.mu.Unlock()
+}
+
+func (c *Client) currentGame() *blackjack.Game {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.game
 }
 
 func (c *Client) Send(msg string) {
@@ -232,9 +247,106 @@ func (c *Client) handleCommand(cmd string) {
 		c.Send(fmt.Sprintf("%s - room: %s, online: %v",
 			target.Nick(), roomName, duration.Round(time.Second)))
 
+	case "/blackjack":
+		c.handleBlackjack(parts)
+
 	default:
 		c.Send("Unknown command")
 	}
+}
+
+func (c *Client) handleBlackjack(parts []string) {
+	if len(parts) < 2 {
+		c.Send("Usage: /blackjack <start|hit|stand|status|quit>")
+		return
+	}
+
+	switch parts[1] {
+	case "start":
+		game := blackjack.NewGame(nil)
+		c.setGame(game)
+		c.Send("Blackjack game started.")
+		c.Send(fmt.Sprintf("Dealer shows %s and [?]", game.Dealer[0].String()))
+		c.Send(formatBlackjackHand("Your hand", game.Player))
+		if game.IsFinished() {
+			c.finishBlackjack(game)
+			return
+		}
+		c.Send("Use /blackjack hit or /blackjack stand.")
+
+	case "hit":
+		game := c.currentGame()
+		if game == nil {
+			c.Send("Start a game first with /blackjack start")
+			return
+		}
+		if game.IsFinished() {
+			c.finishBlackjack(game)
+			return
+		}
+		game.PlayerHit()
+		c.Send("You drew a card.")
+		c.Send(formatBlackjackHand("Your hand", game.Player))
+		if game.IsFinished() {
+			c.finishBlackjack(game)
+			return
+		}
+		c.Send(fmt.Sprintf("Dealer shows %s and [?]", game.Dealer[0].String()))
+
+	case "stand":
+		game := c.currentGame()
+		if game == nil {
+			c.Send("Start a game first with /blackjack start")
+			return
+		}
+		if game.IsFinished() {
+			c.finishBlackjack(game)
+			return
+		}
+		game.PlayerStand()
+		c.finishBlackjack(game)
+
+	case "status":
+		game := c.currentGame()
+		if game == nil {
+			c.Send("No active blackjack game.")
+			return
+		}
+		c.Send(formatBlackjackHand("Your hand", game.Player))
+		c.Send(fmt.Sprintf("Dealer shows %s and [?]", game.Dealer[0].String()))
+
+	case "quit":
+		if c.currentGame() == nil {
+			c.Send("No active blackjack game.")
+			return
+		}
+		c.setGame(nil)
+		c.Send("Blackjack game discarded.")
+
+	default:
+		c.Send("Usage: /blackjack <start|hit|stand|status|quit>")
+	}
+}
+
+func (c *Client) finishBlackjack(game *blackjack.Game) {
+	c.Send("Round finished.")
+	c.Send(formatBlackjackHand("Dealer", game.Dealer))
+	c.Send(formatBlackjackHand("Player", game.Player))
+	switch game.Result {
+	case blackjack.ResultPlayerWin:
+		c.Send("Result: you win!")
+	case blackjack.ResultDealerWin:
+		c.Send("Result: dealer wins.")
+	case blackjack.ResultPush:
+		c.Send("Result: push.")
+	default:
+		c.Send("Result: no winner.")
+	}
+	c.setGame(nil)
+}
+
+func formatBlackjackHand(label string, hand blackjack.Hand) string {
+	return fmt.Sprintf("%s: %s", label, hand.String())
 }
 
 func (c *Client) Close() {
