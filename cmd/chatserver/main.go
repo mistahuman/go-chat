@@ -8,13 +8,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	chat "tcp-server/internal/chat"
 )
 
 func main() {
-	addr := flag.String("addr", ":8080", "TCP address to listen on")
+	defaultAddr := getEnv("CHATSERVER_ADDR", ":8080")
+	addr := flag.String("addr", defaultAddr, "TCP address to listen on")
 	flag.Parse()
 
-	server := NewServer()
+	server := chat.NewServer()
 
 	listener, err := net.Listen("tcp", *addr)
 	if err != nil {
@@ -50,4 +53,11 @@ func main() {
 
 		go server.HandleConnection(ctx, conn)
 	}
+}
+
+func getEnv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
 }

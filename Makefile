@@ -1,28 +1,34 @@
-BINARY := bin/go-chat
+GO ?= go
+BINARY := bin/chatserver
 PKG := ./...
 
-.PHONY: build run clean fmt lint test tidy
+.PHONY: build run clean fmt lint test tidy doc
 
-build:
-	@echo "Building $(BINARY)..."
-	@mkdir -p $(dir $(BINARY))
-	@go build -o $(BINARY) ./
+build: $(BINARY)
+
+$(BINARY):
+	@echo "Building $@"
+	@mkdir -p $(dir $@)
+	@$(GO) build -o $@ ./cmd/chatserver
 
 run: build
 	@$(BINARY)
 
 clean:
 	@echo "Removing build artifacts"
-	@rm -rf bin
+	@rm -rf $(dir $(BINARY))
 
 fmt:
-	@go fmt $(PKG)
+	@$(GO) fmt $(PKG)
 
 lint:
-	@go vet $(PKG)
+	@$(GO) vet $(PKG)
 
 test:
-	@go test $(PKG)
+	@$(GO) test $(PKG)
 
 tidy:
-	@go mod tidy
+	@$(GO) mod tidy
+
+doc:
+	@$(GO) doc ./...

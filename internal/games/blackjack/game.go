@@ -2,6 +2,7 @@ package blackjack
 
 import "math/rand"
 
+// GameState represents the current point in the round lifecycle.
 type GameState int
 
 const (
@@ -10,6 +11,7 @@ const (
 	StateFinished
 )
 
+// Result models the final outcome of a round.
 type Result int
 
 const (
@@ -19,6 +21,7 @@ const (
 	ResultPush
 )
 
+// Game models a single blackjack round between the player and the dealer.
 type Game struct {
 	Deck   Deck
 	Player Hand
@@ -28,6 +31,8 @@ type Game struct {
 	Result Result
 }
 
+// NewGame returns a shuffled round ready for play. If rnd is nil the default
+// global source is used for shuffling.
 func NewGame(rnd *rand.Rand) *Game {
 	deck := NewDeck()
 	deck.Shuffle(rnd)
@@ -54,6 +59,8 @@ func (g *Game) dealInitial() {
 	}
 }
 
+// PlayerHit deals a single card to the player and updates the result if the
+// player busts.
 func (g *Game) PlayerHit() {
 	if g.State != StatePlayerTurn || g.Result != ResultNone {
 		return
@@ -67,6 +74,7 @@ func (g *Game) PlayerHit() {
 	}
 }
 
+// PlayerStand ends the player's turn and triggers the dealer's automatic play.
 func (g *Game) PlayerStand() {
 	if g.State != StatePlayerTurn || g.Result != ResultNone {
 		return
@@ -110,6 +118,7 @@ func (g *Game) finishRound() {
 
 }
 
+// IsFinished reports whether the round has reached a terminal state.
 func (g *Game) IsFinished() bool {
 	return g.State == StateFinished
 }
