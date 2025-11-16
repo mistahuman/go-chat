@@ -16,8 +16,15 @@ type Session interface {
 	Handle(action string, args []string) (messages []string, finished bool, err error)
 }
 
-// Factory builds new Session instances.
-type Factory func() Session
+// Bank exposes the chip operations shared across games.
+type Bank interface {
+	Balance() int
+	Credit(amount int)
+	Debit(amount int) error
+}
+
+// Factory builds new Session instances bound to a shared bank.
+type Factory func(bank Bank) Session
 
 // Manager holds the set of available game factories and provides lookup helpers.
 type Manager struct {

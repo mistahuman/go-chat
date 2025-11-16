@@ -28,6 +28,7 @@ type Client struct {
 	cancel    context.CancelFunc
 	closeOnce sync.Once
 	game      games.Session
+	bank      games.Bank
 }
 
 func NewClient(ctx context.Context, conn net.Conn, server *Server) *Client {
@@ -40,6 +41,7 @@ func NewClient(ctx context.Context, conn net.Conn, server *Server) *Client {
 		writeChan: make(chan string, 100),
 		ctx:       clientCtx,
 		cancel:    cancel,
+		bank:      games.NewBankroll(500),
 	}
 	go func() {
 		<-clientCtx.Done()
@@ -339,7 +341,7 @@ func (c *Client) handleGameCommand(parts []string) bool {
 	if action == "start" {
 		session = c.currentGame()
 		if session == nil || session.Name() != command {
-			session = factory()
+			session = factory(c.bank)
 			c.setGame(session)
 		}
 	} else {

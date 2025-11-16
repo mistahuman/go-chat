@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"tcp-server/internal/games"
 )
 
 type randomizer interface {
@@ -14,7 +16,7 @@ type randomizer interface {
 
 // Session models a simple roulette table bound to a single client.
 type Session struct {
-	bankroll   int
+	bank       games.Bank
 	minBet     int
 	maxBet     int
 	currentBet int
@@ -33,16 +35,19 @@ const (
 )
 
 // NewSession returns a roulette session with a seeded RNG.
-func NewSession() *Session {
-	return newSessionWithRand(rand.New(rand.NewSource(time.Now().UnixNano())))
+func NewSession(bank games.Bank) *Session {
+	if bank == nil {
+		panic("roulette session requires bank")
+	}
+	return newSessionWithRand(bank, rand.New(rand.NewSource(time.Now().UnixNano())))
 }
 
-func newSessionWithRand(r randomizer) *Session {
+func newSessionWithRand(bank games.Bank, r randomizer) *Session {
 	return &Session{
-		bankroll: 200,
-		minBet:   5,
-		maxBet:   200,
-		rng:      r,
+		bank:   bank,
+		minBet: 5,
+		maxBet: 200,
+		rng:    r,
 	}
 }
 
@@ -72,8 +77,8 @@ func (s *Session) Handle(action string, args []string) ([]string, bool, error) {
 		if amount < s.minBet || amount > s.maxBet {
 			return nil, false, fmt.Errorf("bet must be between %d and %d", s.minBet, s.maxBet)
 		}
-		if s.bankroll < amount {
-			return nil, false, fmt.Errorf("not enough chips. Bankroll: %d", s.bankroll)
+		if s.bank.Balance() < amount {
+			return nil, false, fmt.Errorf("Not enough chips. Bankroll: %d", s.bank.Balance())
 		}
 		choice := strings.ToLower(strings.Join(args[1:], ""))
 		if err := s.setSelection(choice); err != nil {
@@ -85,17 +90,16 @@ func (s *Session) Handle(action string, args []string) ([]string, bool, error) {
 		if s.selectionKind == kindNone || s.currentBet == 0 {
 			return nil, false, fmt.Errorf("place a bet first with /roulette wager <amount> <choice>")
 		}
-		if s.bankroll < s.currentBet {
-			return nil, false, fmt.Errorf("not enough chips. Bankroll: %d", s.bankroll)
+		if err := s.bank.Debit(s.currentBet); err != nil {
+			return nil, false, err
 		}
 		outcome := s.rng.Intn(37)
 		color := colorFor(outcome)
-		s.bankroll -= s.currentBet
 		won, multiplier := s.evaluateBet(outcome, color)
 		messages := []string{fmt.Sprintf("Wheel landed on %d (%s).", outcome, color)}
 		if won {
 			winnings := s.currentBet * multiplier
-			s.bankroll += s.currentBet + winnings
+			s.bank.Credit(s.currentBet + winnings)
 			messages = append(messages, fmt.Sprintf("You won %d chips!", winnings))
 		} else {
 			messages = append(messages, fmt.Sprintf("You lost %d chips.", s.currentBet))
@@ -107,7 +111,6 @@ func (s *Session) Handle(action string, args []string) ([]string, bool, error) {
 	case "status":
 		return []string{s.statusMessage()}, false, nil
 	case "reset":
-		s.bankroll = 200
 		s.currentBet = 0
 		s.selectionKind = kindNone
 		return []string{"Roulette session reset.", s.statusMessage()}, false, nil
@@ -168,7 +171,7 @@ func (s *Session) statusMessage() string {
 	if s.selectionKind != kindNone {
 		bet = fmt.Sprintf("Pending bet: %d on %s.", s.currentBet, s.describeSelection())
 	}
-	return fmt.Sprintf("Bankroll: %d chips. %s", s.bankroll, bet)
+	return fmt.Sprintf("Bankroll: %d chips. %s", s.bank.Balance(), bet)
 }
 
 func colorFor(value int) string {

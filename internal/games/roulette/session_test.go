@@ -1,6 +1,10 @@
 package roulette
 
-import "testing"
+import (
+	"testing"
+
+	"tcp-server/internal/games"
+)
 
 type fixedRand struct {
 	value int
@@ -11,7 +15,8 @@ func (f fixedRand) Intn(n int) int {
 }
 
 func TestRouletteNumberWin(t *testing.T) {
-	s := newSessionWithRand(fixedRand{value: 17})
+	bank := games.NewBankroll(200)
+	s := newSessionWithRand(bank, fixedRand{value: 17})
 	if _, _, err := s.Handle("start", nil); err != nil {
 		t.Fatalf("start failed: %v", err)
 	}
@@ -25,8 +30,8 @@ func TestRouletteNumberWin(t *testing.T) {
 	if finished {
 		t.Fatalf("spin should not finish session")
 	}
-	if s.bankroll != 550 {
-		t.Fatalf("expected bankroll 550, got %d", s.bankroll)
+	if bank.Balance() != 550 {
+		t.Fatalf("expected bankroll 550, got %d", bank.Balance())
 	}
 	if len(messages) < 2 {
 		t.Fatalf("expected spin messages")
@@ -34,7 +39,8 @@ func TestRouletteNumberWin(t *testing.T) {
 }
 
 func TestRouletteColorLoss(t *testing.T) {
-	s := newSessionWithRand(fixedRand{value: 2}) // black
+	bank := games.NewBankroll(200)
+	s := newSessionWithRand(bank, fixedRand{value: 2}) // black
 	if _, _, err := s.Handle("start", nil); err != nil {
 		t.Fatalf("start failed: %v", err)
 	}
@@ -45,7 +51,7 @@ func TestRouletteColorLoss(t *testing.T) {
 	if err != nil {
 		t.Fatalf("spin failed: %v", err)
 	}
-	if s.bankroll != 180 {
-		t.Fatalf("expected bankroll 180 after loss, got %d", s.bankroll)
+	if bank.Balance() != 180 {
+		t.Fatalf("expected bankroll 180 after loss, got %d", bank.Balance())
 	}
 }

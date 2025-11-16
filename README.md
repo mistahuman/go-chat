@@ -6,8 +6,9 @@ A modular TCP chat server written in Go with support for rooms, private messages
 
 - Lobby plus ad-hoc rooms with live room metadata (topics, population, creation time) and automatic cleanup when empty.
 - Per-room topic management with `/topic`, `/rooms` and `/roominfo` commands.
-- Embedded blackjack mini-game (now under `/bl`) featuring chip bankrolls, configurable bets, payouts and blackjack bonuses.
-- Lightweight roulette game with color/number bets and bankroll tracking.
+- Embedded blackjack mini-game (now under `/bl`) featuring configurable bets, payouts and blackjack bonuses.
+- Lightweight roulette game with color/number bets.
+- Per-user chip bankroll (500 chips by default) shared across every mini-game.
 - Extensible game registry for adding new interactive games.
 - Container-first workflow with Docker and docker-compose.
 

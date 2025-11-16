@@ -27,11 +27,11 @@ type Server struct {
 // NewServer wires the default rooms and registers the built-in games.
 func NewServer() *Server {
 	gameManager := games.NewManager()
-	gameManager.Register("bl", func() games.Session {
-		return blackjack.NewSession()
+	gameManager.Register("bl", func(bank games.Bank) games.Session {
+		return blackjack.NewSession(bank)
 	})
-	gameManager.Register("roulette", func() games.Session {
-		return roulette.NewSession()
+	gameManager.Register("roulette", func(bank games.Bank) games.Session {
+		return roulette.NewSession(bank)
 	})
 
 	s := &Server{

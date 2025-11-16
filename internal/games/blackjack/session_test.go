@@ -1,10 +1,14 @@
 package blackjack
 
-import "testing"
+import (
+	"testing"
+
+	"tcp-server/internal/games"
+)
 
 func TestSessionBlackjackPayout(t *testing.T) {
-	s := NewSession()
-	s.bankroll = 100
+	bank := games.NewBankroll(100)
+	s := NewSession(bank)
 	s.wagered = 20
 	s.game = &Game{
 		Player: Hand{
@@ -23,14 +27,14 @@ func TestSessionBlackjackPayout(t *testing.T) {
 	if msg == "" {
 		t.Fatalf("expected payout message")
 	}
-	if s.bankroll != 150 {
-		t.Fatalf("expected bankroll 150, got %d", s.bankroll)
+	if bank.Balance() != 150 {
+		t.Fatalf("expected bankroll 150, got %d", bank.Balance())
 	}
 }
 
 func TestSessionPushRefund(t *testing.T) {
-	s := NewSession()
-	s.bankroll = 50
+	bank := games.NewBankroll(50)
+	s := NewSession(bank)
 	s.wagered = 10
 	s.game = &Game{
 		Player: Hand{
@@ -46,7 +50,7 @@ func TestSessionPushRefund(t *testing.T) {
 	}
 
 	_ = s.settleRound()
-	if s.bankroll != 60 {
-		t.Fatalf("expected bankroll 60, got %d", s.bankroll)
+	if bank.Balance() != 60 {
+		t.Fatalf("expected bankroll 60, got %d", bank.Balance())
 	}
 }

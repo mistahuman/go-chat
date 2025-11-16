@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"tcp-server/internal/games"
 )
 
 // Session exposes the blackjack game through the generic games.Session interface.
 type Session struct {
 	game *Game
 
-	bankroll   int
+	bank       games.Bank
 	currentBet int
 	wagered    int
 	minBet     int
@@ -19,9 +21,12 @@ type Session struct {
 }
 
 // NewSession returns a new blackjack session ready to be started.
-func NewSession() *Session {
+func NewSession(bank games.Bank) *Session {
+	if bank == nil {
+		panic("blackjack session requires bank")
+	}
 	return &Session{
-		bankroll:   200,
+		bank:       bank,
 		currentBet: 10,
 		minBet:     5,
 		maxBet:     200,
@@ -30,7 +35,7 @@ func NewSession() *Session {
 
 // Name satisfies the games.Session interface.
 func (s *Session) Name() string {
-	return "blackjack"
+	return "bl"
 }
 
 // Handle interprets user actions and returns the resulting messages.
@@ -93,12 +98,11 @@ func (s *Session) Handle(action string, args []string) ([]string, bool, error) {
 	case "bankroll":
 		return []string{s.bankrollStatus()}, false, nil
 	case "reset":
-		s.bankroll = 200
 		s.currentBet = 10
 		s.wagered = 0
 		s.settled = true
 		s.game = nil
-		return []string{"Bankroll reset.", s.bankrollStatus()}, true, nil
+		return []string{"Blackjack session reset.", s.bankrollStatus()}, true, nil
 	default:
 		return nil, false, fmt.Errorf("unknown blackjack action: %s", action)
 	}
@@ -111,10 +115,9 @@ func (s *Session) startRound() error {
 	if s.currentBet < s.minBet || s.currentBet > s.maxBet {
 		return fmt.Errorf("bet must be between %d and %d", s.minBet, s.maxBet)
 	}
-	if s.bankroll < s.currentBet {
-		return fmt.Errorf("Not enough chips. Bankroll: %d", s.bankroll)
+	if err := s.bank.Debit(s.currentBet); err != nil {
+		return err
 	}
-	s.bankroll -= s.currentBet
 	s.wagered = s.currentBet
 	s.game = NewGame(nil)
 	s.settled = false
@@ -189,7 +192,7 @@ func (s *Session) settleRound() string {
 	case ResultPush:
 		payout = s.wagered
 	}
-	s.bankroll += payout
+	s.bank.Credit(payout)
 	s.wagered = 0
 	s.settled = true
 	if payout == 0 {
@@ -199,5 +202,5 @@ func (s *Session) settleRound() string {
 }
 
 func (s *Session) bankrollStatus() string {
-	return fmt.Sprintf("Bankroll: %d chips. Current bet: %d", s.bankroll, s.currentBet)
+	return fmt.Sprintf("Bankroll: %d chips. Current bet: %d", s.bank.Balance(), s.currentBet)
 }
