@@ -79,7 +79,7 @@ func (s *Session) Handle(action string, args []string) ([]string, bool, error) {
 		return []string{"Blackjack game discarded.", s.bankrollStatus()}, true, nil
 	case "bet":
 		if len(args) == 0 {
-			return nil, false, fmt.Errorf("usage: /blackjack bet <amount>")
+			return nil, false, fmt.Errorf("usage: /bl bet <amount>")
 		}
 		amount, err := strconv.Atoi(args[0])
 		if err != nil || amount <= 0 {
@@ -123,10 +123,10 @@ func (s *Session) startRound() error {
 
 func (s *Session) ensureActive() error {
 	if s.game == nil {
-		return fmt.Errorf("start a blackjack game first with /blackjack start")
+		return fmt.Errorf("start a blackjack game first with /bl start")
 	}
 	if s.game.IsFinished() {
-		return fmt.Errorf("Round finished. Start a new game with /blackjack start")
+		return fmt.Errorf("Round finished. Start a new game with /bl start")
 	}
 	return nil
 }
@@ -141,7 +141,7 @@ func (s *Session) startMessages() []string {
 	if s.game.IsFinished() {
 		messages = append(messages, s.finishMessages()...)
 	} else {
-		messages = append(messages, "Use /blackjack hit, /blackjack stand or /blackjack status.")
+		messages = append(messages, "Use /bl hit, /bl stand or /bl status.")
 	}
 	return messages
 }
@@ -167,7 +167,7 @@ func (s *Session) finishMessages() []string {
 		messages = append(messages, payout)
 	}
 	messages = append(messages, s.bankrollStatus())
-	messages = append(messages, "Use /blackjack start to play again.")
+	messages = append(messages, "Use /bl start to play again.")
 	return messages
 }
 

@@ -9,6 +9,7 @@ import (
 
 	"tcp-server/internal/games"
 	"tcp-server/internal/games/blackjack"
+	"tcp-server/internal/games/roulette"
 )
 
 const defaultRoomName = "lobby"
@@ -26,8 +27,11 @@ type Server struct {
 // NewServer wires the default rooms and registers the built-in games.
 func NewServer() *Server {
 	gameManager := games.NewManager()
-	gameManager.Register("blackjack", func() games.Session {
+	gameManager.Register("bl", func() games.Session {
 		return blackjack.NewSession()
+	})
+	gameManager.Register("roulette", func() games.Session {
+		return roulette.NewSession()
 	})
 
 	s := &Server{
@@ -51,7 +55,7 @@ func (s *Server) HandleConnection(ctx context.Context, conn net.Conn) {
 	lobby.Join(client)
 	client.setRoom(lobby)
 
-	client.Send("Welcome! Commands: /nick /join /rooms /list /msg /leave /who /topic /games /blackjack")
+	client.Send("Welcome! Commands: /nick /join /rooms /list /msg /leave /who /topic /games /bl /roulette")
 	s.Broadcast(s.defaultRoom, fmt.Sprintf("* %s joined", client.Nick()))
 
 	client.Handle()
