@@ -35,20 +35,20 @@ tidy:
 	@$(GO) mod tidy
 
 doc:
-@echo "Starting documentation server on http://localhost:$(DOC_PORT)"
-@$(GO) run golang.org/x/tools/cmd/godoc@latest -http=:$(DOC_PORT)
+	@echo "Starting documentation server on http://localhost:$(DOC_PORT)"
+	@$(GO) run golang.org/x/tools/cmd/godoc@latest -http=:$(DOC_PORT)
 
 docker-build:
-@$(DOCKER) build -t $(IMAGE) .
+	@$(DOCKER) build -t $(IMAGE) .
 
 docker-run: docker-build
-@$(DOCKER) run --rm -p 8080:8080 $(IMAGE)
+	@$(DOCKER) run --rm -p 8080:8080 $(IMAGE)
 
 compose-up:
-@$(DOCKER_COMPOSE) up --build
+	@$(DOCKER_COMPOSE) up --build
 
 compose-down:
-@$(DOCKER_COMPOSE) down
+	@$(DOCKER_COMPOSE) down
 
 compose-logs:
-@$(DOCKER_COMPOSE) logs -f
+	@$(DOCKER_COMPOSE) logs -f
