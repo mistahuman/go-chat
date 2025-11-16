@@ -1,5 +1,5 @@
 GO ?= go
-BINARY := bin/go-chat
+BINARY := bin/chatserver
 PKG := ./...
 
 .PHONY: build run clean fmt lint test tidy doc
@@ -7,9 +7,9 @@ PKG := ./...
 build: $(BINARY)
 
 $(BINARY):
-	@echo "Building $@"
-	@mkdir -p $(dir $@)
-	@$(GO) build -o $@ ./
+@echo "Building $@"
+@mkdir -p $(dir $@)
+@$(GO) build -o $@ ./cmd/chatserver
 
 run: build
 	@$(BINARY)

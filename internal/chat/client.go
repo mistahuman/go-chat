@@ -1,4 +1,4 @@
-package main
+package chat
 
 import (
 	"bufio"
@@ -10,11 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"tcp-server/games"
+	"tcp-server/internal/games"
 )
 
 const maxMessageSize = 1024 * 1024
 
+// Client represents a single TCP connection.
 type Client struct {
 	conn      net.Conn
 	nick      string
@@ -177,12 +178,14 @@ func (c *Client) handleCommand(cmd string) {
 		if current := c.Room(); current != nil {
 			current.Leave(c)
 			current.Broadcast(fmt.Sprintf("* %s left", c.Nick()))
+			c.server.RemoveRoomIfEmpty(current)
 		}
 
 		newRoom := c.server.GetOrCreateRoom(parts[1])
 		newRoom.Join(c)
 		c.setRoom(newRoom)
 		c.Send(fmt.Sprintf("Joined room: %s", parts[1]))
+		c.Send(formatRoomTopic(newRoom.Info()))
 		newRoom.Broadcast(fmt.Sprintf("* %s joined", c.Nick()))
 
 	case "/leave":
@@ -194,14 +197,29 @@ func (c *Client) handleCommand(cmd string) {
 		current.Leave(c)
 		current.Broadcast(fmt.Sprintf("* %s left", c.Nick()))
 		c.setRoom(nil)
+		c.server.RemoveRoomIfEmpty(current)
 		c.Send("Left room")
 
 	case "/rooms":
-		rooms := c.server.ListRooms()
-		c.Send("Available rooms:")
-		for _, name := range rooms {
-			c.Send(fmt.Sprintf("  - %s", name))
+		infos := c.server.RoomSummaries()
+		if len(infos) == 0 {
+			c.Send("No rooms available")
+			return
 		}
+		c.Send("Available rooms:")
+		for _, info := range infos {
+			c.Send(formatRoomSummary(info))
+		}
+
+	case "/roominfo":
+		target := ""
+		if len(parts) > 1 {
+			target = parts[1]
+		}
+		c.sendRoomInfo(target)
+
+	case "/topic":
+		c.handleTopicCommand(parts)
 
 	case "/list":
 		current := c.Room()
@@ -263,6 +281,43 @@ func (c *Client) handleCommand(cmd string) {
 	}
 }
 
+func (c *Client) sendRoomInfo(name string) {
+	var info RoomInfo
+	var ok bool
+
+	if name == "" {
+		if room := c.Room(); room != nil {
+			info = room.Info()
+			ok = true
+		}
+	} else {
+		info, ok = c.server.GetRoomInfo(name)
+	}
+
+	if !ok {
+		c.Send("Room not found")
+		return
+	}
+
+	c.Send(formatRoomSummary(info))
+	c.Send(fmt.Sprintf("Created %s ago", time.Since(info.CreatedAt).Round(time.Second)))
+}
+
+func (c *Client) handleTopicCommand(parts []string) {
+	current := c.Room()
+	if current == nil {
+		c.Send("Join a room to set its topic")
+		return
+	}
+	if len(parts) < 2 {
+		c.Send(fmt.Sprintf("Current topic: %s", current.Topic()))
+		return
+	}
+	topic := strings.Join(parts[1:], " ")
+	current.SetTopic(topic)
+	current.Broadcast(fmt.Sprintf("* %s set the topic: %s", c.Nick(), topic))
+}
+
 func (c *Client) handleGameCommand(parts []string) bool {
 	if len(parts) == 0 {
 		return false
@@ -282,8 +337,11 @@ func (c *Client) handleGameCommand(parts []string) bool {
 	action := strings.ToLower(parts[1])
 	var session games.Session
 	if action == "start" {
-		session = factory()
-		c.setGame(session)
+		session = c.currentGame()
+		if session == nil || session.Name() != command {
+			session = factory()
+			c.setGame(session)
+		}
 	} else {
 		session = c.currentGame()
 	}
@@ -311,4 +369,12 @@ func (c *Client) Close() {
 		c.cancel()
 		_ = c.conn.Close()
 	})
+}
+
+func formatRoomSummary(info RoomInfo) string {
+	return fmt.Sprintf("  - %s (%d users) - %s", info.Name, info.Population, info.Topic)
+}
+
+func formatRoomTopic(info RoomInfo) string {
+	return fmt.Sprintf("Room %s topic: %s", info.Name, info.Topic)
 }
