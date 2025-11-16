@@ -265,7 +265,7 @@ func (c *Client) handleCommand(cmd string) {
 		c.Send(fmt.Sprintf("%s - room: %s, online: %v",
 			target.Nick(), roomName, duration.Round(time.Second)))
 
-	case "/blackjack":
+	case "/bl":
 		c.handleGameCommand(parts)
 
 	case "/games":

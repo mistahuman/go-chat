@@ -6,7 +6,8 @@ A modular TCP chat server written in Go with support for rooms, private messages
 
 - Lobby plus ad-hoc rooms with live room metadata (topics, population, creation time) and automatic cleanup when empty.
 - Per-room topic management with `/topic`, `/rooms` and `/roominfo` commands.
-- Embedded blackjack mini-game featuring chip bankrolls, configurable bets, payouts and blackjack bonuses.
+- Embedded blackjack mini-game (now under `/bl`) featuring chip bankrolls, configurable bets, payouts and blackjack bonuses.
+- Lightweight roulette game with color/number bets and bankroll tracking.
 - Extensible game registry for adding new interactive games.
 - Container-first workflow with Docker and docker-compose.
 
@@ -21,12 +22,18 @@ make build
 
 Connect with `nc localhost 8080` or any TCP client.
 
+Use `make doc` to start a local Go documentation server on <http://localhost:6060>.
+
 ### Docker
 
 Build and run using docker-compose:
 
 ```bash
-docker compose up --build
+make docker-build   # builds the application image
+make docker-run     # runs the built image (publishes 8080)
+make compose-up     # docker compose up --build
+make compose-down   # docker compose down
+make compose-logs   # docker compose logs -f
 ```
 
 The server listens on `localhost:8080` by default and can be changed with the `CHATSERVER_ADDR` environment variable.
@@ -42,7 +49,8 @@ The server listens on `localhost:8080` by default and can be changed with the `C
 /list                Show users in the current room
 /msg <user> <text>   Send a private message
 /who <user>          Inspect another user
-/blackjack ...       Play the blackjack mini-game (start, bet, hit, stand, status, bankroll, reset)
+/bl ...              Play the blackjack mini-game (start, bet, hit, stand, status, bankroll, reset)
+/roulette ...        Play the roulette mini-game (start, wager, spin, status, reset)
 /games               List registered games
 ```
 
@@ -52,5 +60,6 @@ The server listens on `localhost:8080` by default and can be changed with the `C
 - `internal/chat`: Core chat domain (clients, rooms, server lifecycle).
 - `internal/games`: Game registry abstractions.
 - `internal/games/blackjack`: Blackjack implementation and tests.
+- `internal/games/roulette`: Roulette implementation and tests.
 
 Run tests with `make test`.
